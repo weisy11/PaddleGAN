@@ -77,7 +77,7 @@ class ContextualAttention(paddle.nn.Layer):
         if self.with_fuse_correlation:
             assert fuse_kernel_size % 2 == 1
             fuse_kernel = paddle.eye(fuse_kernel_size).reshape(
-                1, 1, fuse_kernel_size, fuse_kernel_size)
+                [1, 1, fuse_kernel_size, fuse_kernel_size])
             self.register_buffer('fuse_kernel', fuse_kernel)
             padding = int((fuse_kernel_size - 1) // 2)
             self.fuse_conv = partial(F.conv2d, padding=padding, stride=1)
@@ -123,7 +123,7 @@ class ContextualAttention(paddle.nn.Layer):
         # reshape context_cols to
         # (n*h_unfold*w_unfold, c, unfold_mks, unfold_mks)
         # 'mks' is short for 'mask_kernel_size'
-        context_cols = context_cols.reshape(-1, *context_cols.shape[2:])
+        context_cols = context_cols.reshape([-1, *context_cols.shape[2:]])
 
         # the shape of correlation map should be:
         # (n, h_unfold*w_unfold, h', w')
@@ -138,7 +138,7 @@ class ContextualAttention(paddle.nn.Layer):
         attention_score = self.softmax(correlation_map * self.softmax_scale)
 
         raw_context_filter = raw_context_cols.reshape(
-            -1, *raw_context_cols.shape[2:])
+            [-1, *raw_context_cols.shape[2:]])
         output = self.patch_copy_deconv(attention_score, raw_context_filter)
         # deconv will cause overlap and we need to remove the effects of that
         overlap_factor = self.calculate_overlap_factor(attention_score)
@@ -146,8 +146,7 @@ class ContextualAttention(paddle.nn.Layer):
 
         if self.return_attention_score:
             n, _, h_s, w_s = attention_score.size()
-            attention_score = attention_score.reshape(n, h_unfold, w_unfold, h_s,
-                                                   w_s)
+            attention_score = attention_score.reshape([n, h_unfold, w_unfold, h_s, w_s])
             return output, attention_score
 
         return output
@@ -164,14 +163,14 @@ class ContextualAttention(paddle.nn.Layer):
         n, _, h_in, w_in = x.size()
 
         patch_corr = F.conv2d(
-            x.reshape(1, -1, h_in, w_in),
+            x.reshape([1, -1, h_in, w_in]),
             kernel,
             stride=self.unfold_corr_stride,
             padding=self.unfold_corr_padding,
             dilation=self.unfold_corr_dilation,
             groups=n)
         h_out, w_out = patch_corr.size()[-2:]
-        return patch_corr.reshape(n, -1, h_out, w_out)
+        return patch_corr.reshape([n, -1, h_out, w_out])
 
     def patch_copy_deconv(self, attention_score, context_filter):
         """Copy patches using deconv.
@@ -182,7 +181,7 @@ class ContextualAttention(paddle.nn.Layer):
             torch.Tensor: Tensor with shape of (n, c, h, w).
         """
         n, _, h, w = attention_score.size()
-        attention_score = attention_score.reshape(1, -1, h, w)
+        attention_score = attention_score.reshape([1, -1, h, w])
         output = F.conv2d_transpose(
             attention_score,
             context_filter,
@@ -190,7 +189,7 @@ class ContextualAttention(paddle.nn.Layer):
             padding=self.unfold_raw_padding,
             groups=n)
         h_out, w_out = output.size()[-2:]
-        return output.reshape(n, -1, h_out, w_out)
+        return output.reshape([n, -1, h_out, w_out])
 
     def fuse_correlation_map(self, correlation_map, h_unfold, w_unfold):
         """Fuse correlation map.
@@ -215,23 +214,23 @@ class ContextualAttention(paddle.nn.Layer):
         # horizontal direction
         n, _, h_map, w_map = correlation_map.size()
         map_ = correlation_map.permute(0, 2, 3, 1)
-        map_ = map_.reshape(n, h_map * w_map, h_unfold * w_unfold, 1)
+        map_ = map_.reshape([n, h_map * w_map, h_unfold * w_unfold, 1])
         map_ = map_.permute(0, 3, 1, 2).contiguous()
         map_ = self.fuse_conv(map_, self.fuse_kernel)
 
-        correlation_map = map_.reshape(n, h_unfold, w_unfold, h_map, w_map)
+        correlation_map = map_.reshape([n, h_unfold, w_unfold, h_map, w_map])
 
         # vertical direction
         map_ = correlation_map.permute(0, 2, 1, 4,
-                                       3).reshape(n, 1, h_unfold * w_unfold,
-                                                  h_map * w_map)
+                                       3).reshape([n, 1, h_unfold * w_unfold,
+                                                  h_map * w_map])
         map_ = self.fuse_conv(map_, self.fuse_kernel)
 
         # Note that the dimension should be transposed since the convolution of
         # eye matrix will put the normed scores into the last several dimension
-        correlation_map = map_.reshape(n, w_unfold, h_unfold, w_map,
-                                    h_map).permute(0, 4, 3, 2, 1)
-        correlation_map = correlation_map.reshape(n, -1, h_unfold, w_unfold)
+        correlation_map = map_.reshape([n, w_unfold, h_unfold, w_map,
+                                        h_map]).permute(0, 4, 3, 2, 1)
+        correlation_map = correlation_map.reshape([n, -1, h_unfold, w_unfold])
 
         return correlation_map
 
@@ -304,7 +303,7 @@ class ContextualAttention(paddle.nn.Layer):
                 dilation=self.unfold_corr_dilation)
             mask_cols = (mask_cols.sum(dim=1, keepdim=True) > 0).float()
             mask_cols = mask_cols.permute(0, 2,
-                                          1).reshape(mask.size(0), -1, 1, 1)
+                                          1).reshape([mask.size(0), -1, 1, 1])
             # add negative inf will bring zero in softmax
             mask_cols[mask_cols == 1] = -float('inf')
             correlation_map += mask_cols
@@ -361,8 +360,8 @@ class ContextualAttention(paddle.nn.Layer):
         if return_cols:
             img_unfold_ = img_unfold.permute(0, 2, 1)
             n, num_cols = img_unfold_.size()[:2]
-            img_cols = img_unfold_.reshape(n, num_cols, img.size(1), kernel_size,
-                                        kernel_size)
+            img_cols = img_unfold_.reshape([n, num_cols, img.size(1), kernel_size,
+                                            kernel_size])
             return img_cols
 
         return img_unfold
