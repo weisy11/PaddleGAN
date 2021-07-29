@@ -114,7 +114,7 @@ class ContextualAttention(paddle.nn.Layer):
             normalize=True,
             return_cols=True)
         h_unfold, w_unfold = self.calculate_unfold_hw(
-            context.size()[-2:],
+            context.shape[-2:],
             kernel_size=self.unfold_corr_kernel_size,
             stride=self.unfold_corr_stride,
             padding=self.unfold_corr_padding,
@@ -145,7 +145,7 @@ class ContextualAttention(paddle.nn.Layer):
         output /= overlap_factor
 
         if self.return_attention_score:
-            n, _, h_s, w_s = attention_score.size()
+            n, _, h_s, w_s = attention_score.shape
             attention_score = attention_score.reshape([n, h_unfold, w_unfold, h_s, w_s])
             return output, attention_score
 
@@ -160,7 +160,7 @@ class ContextualAttention(paddle.nn.Layer):
             torch.Tensor: Tensor with shape of (n, l, h, w).
         """
 
-        n, _, h_in, w_in = x.size()
+        n, _, h_in, w_in = x.shape
 
         patch_corr = F.conv2d(
             x.reshape([1, -1, h_in, w_in]),
@@ -169,7 +169,7 @@ class ContextualAttention(paddle.nn.Layer):
             padding=self.unfold_corr_padding,
             dilation=self.unfold_corr_dilation,
             groups=n)
-        h_out, w_out = patch_corr.size()[-2:]
+        h_out, w_out = patch_corr.shape[-2:]
         return patch_corr.reshape([n, -1, h_out, w_out])
 
     def patch_copy_deconv(self, attention_score, context_filter):
@@ -180,7 +180,7 @@ class ContextualAttention(paddle.nn.Layer):
         Returns:
             torch.Tensor: Tensor with shape of (n, c, h, w).
         """
-        n, _, h, w = attention_score.size()
+        n, _, h, w = attention_score.shape
         attention_score = attention_score.reshape([1, -1, h, w])
         output = F.conv2d_transpose(
             attention_score,
@@ -188,7 +188,7 @@ class ContextualAttention(paddle.nn.Layer):
             stride=self.unfold_raw_stride,
             padding=self.unfold_raw_padding,
             groups=n)
-        h_out, w_out = output.size()[-2:]
+        h_out, w_out = output.shape[-2:]
         return output.reshape([n, -1, h_out, w_out])
 
     def fuse_correlation_map(self, correlation_map, h_unfold, w_unfold):
@@ -212,7 +212,7 @@ class ContextualAttention(paddle.nn.Layer):
            ...
        """
         # horizontal direction
-        n, _, h_map, w_map = correlation_map.size()
+        n, _, h_map, w_map = correlation_map.shape
         map_ = correlation_map.transpose([0, 2, 3, 1])
         map_ = map_.reshape([n, h_map * w_map, h_unfold * w_unfold, 1])
         map_ = map_.transpose([0, 3, 1, 2]).contiguous()
@@ -356,7 +356,7 @@ class ContextualAttention(paddle.nn.Layer):
 
         if return_cols:
             img_unfold_ = img_unfold.transpose([0, 2, 1])
-            n, num_cols = img_unfold_.size()[:2]
+            n, num_cols = img_unfold_.shape[:2]
             img_cols = img_unfold_.reshape([n, num_cols, img.size(1), kernel_size,
                                             kernel_size])
             return img_cols
