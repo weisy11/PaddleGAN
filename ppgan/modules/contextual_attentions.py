@@ -299,7 +299,7 @@ class ContextualAttention(paddle.nn.Layer):
                 stride=self.unfold_corr_stride,
                 padding=self.unfold_corr_padding,
                 dilation=self.unfold_corr_dilation)
-            mask_cols = (mask_cols.sum(dim=1, keepdim=True) > 0).float()
+            mask_cols = (mask_cols.sum(axis=1, keepdim=True) > 0).float()
             mask_cols = mask_cols.transpose([0, 2, 1]).reshape([mask.shape[0], -1, 1, 1])
             # add negative inf will bring zero in softmax
             mask_cols[mask_cols == 1] = -float('inf')
@@ -350,7 +350,7 @@ class ContextualAttention(paddle.nn.Layer):
             dilations=dilation)
         # normalize the feature map
         if normalize:
-            norm = paddle.sqrt((img_unfold**2).sum(dim=1, keepdim=True))
+            norm = paddle.sqrt((img_unfold**2).sum(axis=1, keepdim=True))
             eps = paddle.to_tensor([1e-4])
             img_unfold = img_unfold / paddle.max(norm, eps)
 
