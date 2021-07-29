@@ -24,6 +24,7 @@ from .wav2lip import Wav2Lip
 from .lesrcnn import LESRCNNGenerator
 from .resnet_ugatit_p2c import ResnetUGATITP2CGenerator
 from .generator_styleganv2 import StyleGANv2Generator
+from .generator_deepfill import DeepFillGenerator
 from .generator_pixel2style2pixel import Pixel2Style2Pixel
 from .drn import DRNGenerator
 from .generator_starganv2 import StarGANv2Generator, StarGANv2Style, StarGANv2Mapping, FAN
