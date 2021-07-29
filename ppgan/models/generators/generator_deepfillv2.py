@@ -1,0 +1,243 @@
+#   Copyright (c) 2020 PaddlePaddle Authors. All Rights Reserve.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# code was heavily based on https://github.com/open-mmlab/mmediting
+
+
+import paddle
+
+from ppgan.modules.contextual_attentions import ContextualAttention
+
+
+class GatedConv(paddle.nn.Layer):
+    def __init__(self,
+                 in_channels,
+                 out_channels,
+                 kernel_size,
+                 stride,
+                 padding,
+                 padding_mode,
+                 norm=None,
+                 act="ELU",
+                 attention_act="Sigmoid",
+                 **conv_args):
+        super(GatedConv, self).__init__()
+        self.conv = paddle.nn.Conv2D(
+            in_channels=in_channels,
+            out_channels=out_channels,
+            kernel_size=kernel_size,
+            stride=stride,
+            padding=padding,
+            padding_mode=padding_mode,
+            **conv_args
+        )
+        if norm is not None:
+            self.norm = getattr(paddle.nn, norm)
+        else:
+            self.norm = None
+        if act is not None:
+            self.act = getattr(paddle.nn, act)()
+        else:
+            self.act = None
+
+        if attention_act is not None:
+            self.attention_act = getattr(paddle.nn, attention_act)()
+        else:
+            self.attention_act = None
+
+    def forward(self, x):
+        x = self.conv(x)
+        if self.norm is not None:
+            x = self.norm(x)
+        x, y = paddle.split(x, num_or_sections=2, axis=1)
+        if self.act is not None:
+            x = self.act(x)
+        if self.attention_act is not None:
+            y = self.attention_act(y)
+        out = x * y
+        return out
+
+
+class SimpleConv(paddle.nn.Layer):
+    def __init__(self,
+                 in_channels,
+                 out_channels,
+                 kernel_size,
+                 stride,
+                 padding,
+                 padding_mode,
+                 norm,
+                 act="ELU",
+                 gated_act=None,
+                 **conv_args):
+        super(SimpleConv, self).__init__()
+        self.conv = paddle.nn.Conv2D(
+            in_channels=in_channels,
+            out_channels=out_channels,
+            kernel_size=kernel_size,
+            stride=stride,
+            padding=padding,
+            padding_mode=padding_mode,
+            **conv_args
+        )
+        if norm is not None:
+            self.norm = getattr(paddle.nn, norm)
+        else:
+            self.norm = None
+        if act is not None:
+            self.act = getattr(paddle.nn, act)()
+        else:
+            self.act = None
+
+    def forward(self, x):
+        out = self.conv(x)
+        if self.norm is not None:
+            out = self.norm(out)
+        if self.act is not None:
+            out = self.act(out)
+        return out
+
+
+class DeepFillGenerator(paddle.nn.Layer):
+    def __init__(self,
+                 in_channels=5,
+                 conv_type="conv",
+                 padding_mode="reflect",
+                 norm=None,
+                 act="ELU",
+                 gated_act="Sigmoid",
+                 channel_factor=0.75,
+                 **conv_args):
+        super(DeepFillGenerator, self).__init__()
+        if conv_type == "simple":
+            Conv = SimpleConv
+        elif conv_type == "gated":
+            Conv = GatedConv
+        else:
+            raise NotImplementedError("conv type {} not implemented", conv_type)
+        stage1_channels = [int(i * channel_factor) for i in [32, 64, 64, 128, 128, 128]]
+        stage2_conv_channels = [int(i * channel_factor) for i in [32, 32, 64, 64, 128, 128]]
+        stage2_att_channels = [int(i * channel_factor) for i in [32, 32, 64, 128, 128, 128]]
+        stage1_decoder_channels = [int(i * channel_factor) for i in [128, 128, 64, 64, 32, 16, 3]]
+        stage2_decoder_channels = [128, 128, 64, 64, 32, 16, 3]
+        kernel_sizes = [5, 3, 3, 3, 3, 3]
+        strides = [1, 2, 1, 2, 1, 1]
+        self.stage1_encoder = paddle.nn.LayerList()
+        for i in range(6):
+            self.stage1_encoder.append(
+                Conv(in_channels=in_channels,
+                     out_channels=stage1_channels[i],
+                     kernel_size=kernel_sizes[i],
+                     stride=strides[i],
+                     padding=(kernel_sizes[i] - 1) // 2,
+                     padding_mode=padding_mode,
+                     norm=norm,
+                     act=act,
+                     gated_act=gated_act,
+                     **conv_args))
+            in_channels = stage1_channels[i]
+        self.stage1_neck = paddle.nn.LayerList()
+        for i in range(4):
+            self.stage1_neck.append(
+                Conv(in_channels=in_channels,
+                     out_channels=in_channels,
+                     kernel_size=3,
+                     padding=int(2**(i+1)),
+                     padding_mode=padding_mode,
+                     dilation=int(2**(i+1)),
+                     norm=norm,
+                     act=act,
+                     gated_act=gated_act,
+                     **conv_args))
+        self.stage1_decoder = paddle.nn.LayerList()
+        for i in range(7):
+            self.stage1_decoder.append(
+                Conv(in_channels=in_channels,
+                     out_channels=stage1_decoder_channels[i],
+                     kernel_size=3,
+                     padding=1,
+                     padding_mode=padding_mode,
+                     norm=norm,
+                     act=act,
+                     gated_act=gated_act,
+                     **conv_args)
+            )
+            in_channels = stage1_decoder_channels[i]
+        in_channels_stage2 = in_channels
+        self.stage2_conv_encoder = paddle.nn.LayerList()
+        for i in range(6):
+            self.stage2_conv_encoder.append(
+                Conv(in_channels=in_channels,
+                     out_channels=stage2_conv_channels[i],
+                     kernel_size=kernel_sizes[i],
+                     stride=strides[i],
+                     padding=(kernel_sizes[i] - 1) // 2,
+                     padding_mode=padding_mode,
+                     norm=norm,
+                     act=act,
+                     gated_act=gated_act,
+                     **conv_args))
+            in_channels = stage2_conv_channels[i]
+        self.stage2_att_encoder = paddle.nn.LayerList()
+        in_channels = in_channels_stage2
+        for i in range(6):
+            self.stage2_att_encoder.append(
+                Conv(in_channels=in_channels,
+                     out_channels=stage2_att_channels[i],
+                     kernel_size=kernel_sizes[i],
+                     stride=strides[i],
+                     padding=(kernel_sizes[i] - 1) // 2,
+                     padding_mode=padding_mode,
+                     norm=norm,
+                     act=act,
+                     gated_act=gated_act,
+                     **conv_args))
+            in_channels = stage2_att_channels[i]
+        self.stage2_neck = paddle.nn.LayerList()
+        for i in range(4):
+            self.stage2_neck.append(
+                Conv(in_channels=in_channels,
+                     out_channels=in_channels,
+                     kernel_size=3,
+                     padding=int(2 ** (i + 1)),
+                     padding_mode=padding_mode,
+                     dilation=int(2 ** (i + 1)),
+                     norm=norm,
+                     act=act,
+                     gated_act=gated_act,
+                     **conv_args))
+        self.con_attention = ContextualAttention()
+        in_channels *= 2
+        self.stage2_decoder = paddle.nn.LayerList()
+        for i in range(7):
+            self.stage2_decoder.append(
+                Conv(in_channels=in_channels,
+                     out_channels=stage2_decoder_channels[i],
+                     kernel_size=3,
+                     padding=1,
+                     padding_mode=padding_mode,
+                     norm=norm,
+                     act=act,
+                     gated_act=gated_act,
+                     **conv_args)
+            )
+            in_channels = stage2_decoder_channels[i]
+
+    def forward(self, x):
+        x = self.stage1_encoder(x)
+        x = self.stage1_neck(x)
+        x = self.stage1_decoder(x)
+        conv_x = self.stage2_conv_encoder(x)
+        att_x = self.stage2_att_encoder(x)
+        return x
