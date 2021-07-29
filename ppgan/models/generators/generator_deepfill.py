@@ -241,15 +241,15 @@ class DeepFillGenerator(paddle.nn.Layer):
     def forward(self, x):
         for layer_i in self.stage1_encoder:
             x = layer_i(x)
-        for layer_i in self.stage1_neck(x):
+        for layer_i in self.stage1_neck:
             x = layer_i(x)
-        for layer_i in self.stage1_decoder(x):
+        for layer_i in self.stage1_decoder:
             x = layer_i(x)
         conv_x = x
         for layer_i in self.stage2_conv_encoder:
             conv_x = layer_i(conv_x)
         att_x = x
-        for layer_i in self.stage2_att_encoder(x):
+        for layer_i in self.stage2_att_encoder:
             att_x = layer_i(att_x)
         x = self.con_attention(conv_x, att_x)
         for layer_i in self.stage2_neck:
