@@ -213,23 +213,21 @@ class ContextualAttention(paddle.nn.Layer):
        """
         # horizontal direction
         n, _, h_map, w_map = correlation_map.size()
-        map_ = correlation_map.permute(0, 2, 3, 1)
+        map_ = correlation_map.transpose([0, 2, 3, 1])
         map_ = map_.reshape([n, h_map * w_map, h_unfold * w_unfold, 1])
-        map_ = map_.permute(0, 3, 1, 2).contiguous()
+        map_ = map_.transpose([0, 3, 1, 2]).contiguous()
         map_ = self.fuse_conv(map_, self.fuse_kernel)
 
         correlation_map = map_.reshape([n, h_unfold, w_unfold, h_map, w_map])
 
         # vertical direction
-        map_ = correlation_map.permute(0, 2, 1, 4,
-                                       3).reshape([n, 1, h_unfold * w_unfold,
-                                                  h_map * w_map])
+        map_ = correlation_map.transpose([0, 2, 1, 4, 3]).reshape([n, 1, h_unfold * w_unfold, h_map * w_map])
         map_ = self.fuse_conv(map_, self.fuse_kernel)
 
         # Note that the dimension should be transposed since the convolution of
         # eye matrix will put the normed scores into the last several dimension
         correlation_map = map_.reshape([n, w_unfold, h_unfold, w_map,
-                                        h_map]).permute(0, 4, 3, 2, 1)
+                                        h_map]).transpose([0, 4, 3, 2, 1])
         correlation_map = correlation_map.reshape([n, -1, h_unfold, w_unfold])
 
         return correlation_map
@@ -302,8 +300,7 @@ class ContextualAttention(paddle.nn.Layer):
                 padding=self.unfold_corr_padding,
                 dilation=self.unfold_corr_dilation)
             mask_cols = (mask_cols.sum(dim=1, keepdim=True) > 0).float()
-            mask_cols = mask_cols.permute(0, 2,
-                                          1).reshape([mask.size(0), -1, 1, 1])
+            mask_cols = mask_cols.transpose([0, 2, 1]).reshape([mask.size(0), -1, 1, 1])
             # add negative inf will bring zero in softmax
             mask_cols[mask_cols == 1] = -float('inf')
             correlation_map += mask_cols
@@ -358,7 +355,7 @@ class ContextualAttention(paddle.nn.Layer):
             img_unfold = img_unfold / paddle.max(norm, eps)
 
         if return_cols:
-            img_unfold_ = img_unfold.permute(0, 2, 1)
+            img_unfold_ = img_unfold.transpose([0, 2, 1])
             n, num_cols = img_unfold_.size()[:2]
             img_cols = img_unfold_.reshape([n, num_cols, img.size(1), kernel_size,
                                             kernel_size])
