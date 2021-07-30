@@ -30,12 +30,12 @@ class GatedConv(paddle.nn.Layer):
                  padding_mode,
                  norm=None,
                  act="ELU",
-                 attention_act="Sigmoid",
+                 gated_act="Sigmoid",
                  **conv_args):
         super(GatedConv, self).__init__()
         self.conv = paddle.nn.Conv2D(
             in_channels=in_channels,
-            out_channels=out_channels,
+            out_channels=out_channels * 2,
             kernel_size=kernel_size,
             stride=stride,
             padding=padding,
@@ -51,10 +51,10 @@ class GatedConv(paddle.nn.Layer):
         else:
             self.act = None
 
-        if attention_act is not None:
-            self.attention_act = getattr(paddle.nn, attention_act)()
+        if gated_act is not None:
+            self.gated_act = getattr(paddle.nn, gated_act)()
         else:
-            self.attention_act = None
+            self.gated_act = None
 
     def forward(self, x):
         x = self.conv(x)
@@ -63,8 +63,8 @@ class GatedConv(paddle.nn.Layer):
         x, y = paddle.split(x, num_or_sections=2, axis=1)
         if self.act is not None:
             x = self.act(x)
-        if self.attention_act is not None:
-            y = self.attention_act(y)
+        if self.gated_act is not None:
+            y = self.gated_act(y)
         out = x * y
         return out
 
@@ -127,6 +127,7 @@ class DeepFillGenerator(paddle.nn.Layer):
         else:
             raise NotImplementedError("conv type {} not implemented", conv_type)
         stage1_channels = [int(i * channel_factor) for i in [32, 64, 64, 128, 128, 128]]
+        stage2_in_channels = in_channels
         stage2_conv_channels = [int(i * channel_factor) for i in [32, 32, 64, 64, 128, 128]]
         stage2_att_channels = [int(i * channel_factor) for i in [32, 32, 64, 128, 128, 128]]
         stage1_decoder_channels = [int(i * channel_factor) for i in [128, 128, 64, 64, 32, 16, 3]]
@@ -176,8 +177,8 @@ class DeepFillGenerator(paddle.nn.Layer):
                      **conv_args)
             )
             in_channels = stage1_decoder_channels[i]
-        in_channels_stage2 = in_channels
         self.stage2_conv_encoder = paddle.nn.LayerList()
+        in_channels = stage2_in_channels
         for i in range(6):
             self.stage2_conv_encoder.append(
                 Conv(in_channels=in_channels,
@@ -192,7 +193,7 @@ class DeepFillGenerator(paddle.nn.Layer):
                      **conv_args))
             in_channels = stage2_conv_channels[i]
         self.stage2_att_encoder = paddle.nn.LayerList()
-        in_channels = in_channels_stage2
+        in_channels = stage2_in_channels
         for i in range(6):
             self.stage2_att_encoder.append(
                 Conv(in_channels=in_channels,
@@ -239,12 +240,17 @@ class DeepFillGenerator(paddle.nn.Layer):
             in_channels = stage2_decoder_channels[i]
 
     def forward(self, x):
+        input_x = x.clone()
+        masked_img = x[:, :3, ...]
+        mask = input_x[:, -1:, ...]
         for layer_i in self.stage1_encoder:
             x = layer_i(x)
         for layer_i in self.stage1_neck:
             x = layer_i(x)
         for layer_i in self.stage1_decoder:
             x = layer_i(x)
+        x = x * mask + masked_img * (1 - mask)
+        x = paddle.concat([x, input_x[:, 3:, ...]], axis=1)
         conv_x = x
         for layer_i in self.stage2_conv_encoder:
             conv_x = layer_i(conv_x)
