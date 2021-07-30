@@ -266,7 +266,7 @@ class DeepFillGenerator(paddle.nn.Layer):
         att_x = x
         for layer_i in self.stage2_att_encoder:
             att_x = layer_i(att_x)
-        x = self.con_attention(conv_x, att_x)
+        x, offset = self.con_attention(conv_x, att_x)
         for layer_i in self.stage2_neck:
             x = layer_i(x)
         for i, layer_i in enumerate(self.stage2_decoder):
