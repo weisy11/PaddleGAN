@@ -264,8 +264,8 @@ class ContextualAttention(paddle.nn.Layer):
         h, w = attention_score.shape[-2:]
         kernel_size = self.unfold_raw_kernel_size
 
-        ones_input = paddle.ones((1, 1, h, w)).to(attention_score)
-        ones_filter = paddle.ones((1, 1, kernel_size, kernel_size)).to(attention_score)
+        ones_input = paddle.ones((1, 1, h, w))
+        ones_filter = paddle.ones((1, 1, kernel_size, kernel_size))
         overlap = F.conv2d_transpose(
             ones_input,
             ones_filter,
