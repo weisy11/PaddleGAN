@@ -132,7 +132,8 @@ class DeepFillGenerator(paddle.nn.Layer):
         stage2_in_channels = in_channels
         stage2_conv_channels = [int(i * channel_factor) for i in [32, 32, 64, 64, 128, 128]]
         stage2_att_channels = [int(i * channel_factor) for i in [32, 32, 64, 128, 128, 128]]
-        stage1_decoder_channels = [int(i * channel_factor) for i in [128, 128, 64, 64, 32, 16, 3]]
+        stage1_decoder_channels = [int(i * channel_factor) for i in [128, 128, 64, 64, 32, 16]]
+        stage1_decoder_channels.append(3)
         stage2_decoder_channels = [128, 128, 64, 64, 32, 16, 3]
         kernel_sizes = [5, 3, 3, 3, 3, 3]
         strides = [1, 2, 1, 2, 1, 1]
