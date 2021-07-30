@@ -16,6 +16,7 @@
 
 
 import paddle
+import paddle.nn.functional as F
 
 from ppgan.modules.contextual_attentions import ContextualAttention
 
@@ -117,6 +118,7 @@ class DeepFillGenerator(paddle.nn.Layer):
                  norm=None,
                  act="ELU",
                  gated_act="Sigmoid",
+                 out_act="tanh",
                  channel_factor=0.75,
                  **conv_args):
         super(DeepFillGenerator, self).__init__()
@@ -177,6 +179,8 @@ class DeepFillGenerator(paddle.nn.Layer):
                      **conv_args)
             )
             in_channels = stage1_decoder_channels[i]
+        if out_act is not None:
+            self.out_act = getattr(F, out_act)
         self.stage2_conv_encoder = paddle.nn.LayerList()
         in_channels = stage2_in_channels
         for i in range(6):
@@ -241,16 +245,20 @@ class DeepFillGenerator(paddle.nn.Layer):
 
     def forward(self, x):
         input_x = x.clone()
-        masked_img = x[:, :3, ...]
-        mask = input_x[:, -1:, ...]
+        masked_img = x[:, :3]
+        mask = input_x[:, -1:]
         for layer_i in self.stage1_encoder:
             x = layer_i(x)
         for layer_i in self.stage1_neck:
             x = layer_i(x)
-        for layer_i in self.stage1_decoder:
+        for i, layer_i in enumerate(self.stage1_decoder):
             x = layer_i(x)
+            if i in (1, 3):
+                x = F.interpolate(x, scale_factor=2)
+        if self.out_act is not None:
+            x = self.out_act(x)
         x = x * mask + masked_img * (1 - mask)
-        x = paddle.concat([x, input_x[:, 3:, ...]], axis=1)
+        x = paddle.concat([x, input_x[:, 3:]], axis=1)
         conv_x = x
         for layer_i in self.stage2_conv_encoder:
             conv_x = layer_i(conv_x)
@@ -260,6 +268,10 @@ class DeepFillGenerator(paddle.nn.Layer):
         x = self.con_attention(conv_x, att_x)
         for layer_i in self.stage2_neck:
             x = layer_i(x)
-        for layer_i in self.stage2_decoder:
+        for i, layer_i in enumerate(self.stage2_decoder):
             x = layer_i(x)
+            if i in (1, 3):
+                x = F.interpolate(x, scale_factor=2)
+        if self.out_act is not None:
+            x = self.out_act(x)
         return x
