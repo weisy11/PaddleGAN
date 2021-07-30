@@ -215,7 +215,7 @@ class ContextualAttention(paddle.nn.Layer):
         n, _, h_map, w_map = correlation_map.shape
         map_ = correlation_map.transpose([0, 2, 3, 1])
         map_ = map_.reshape([n, h_map * w_map, h_unfold * w_unfold, 1])
-        map_ = map_.transpose([0, 3, 1, 2]).contiguous()
+        map_ = map_.transpose([0, 3, 1, 2])
         map_ = self.fuse_conv(map_, self.fuse_kernel)
 
         correlation_map = map_.reshape([n, h_unfold, w_unfold, h_map, w_map])
@@ -351,8 +351,9 @@ class ContextualAttention(paddle.nn.Layer):
         # normalize the feature map
         if normalize:
             norm = paddle.sqrt((img_unfold**2).sum(axis=1, keepdim=True))
-            eps = paddle.to_tensor([1e-4])
-            img_unfold = img_unfold / paddle.max(norm, eps)
+            eps = paddle.to_tensor([1e-4]).broadcast_to(norm.shape)
+            norm = paddle.max(paddle.to_tensor([norm, eps]), axis=0)
+            img_unfold = img_unfold / norm
 
         if return_cols:
             img_unfold_ = img_unfold.transpose([0, 2, 1])
