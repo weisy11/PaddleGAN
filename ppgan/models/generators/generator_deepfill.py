@@ -197,21 +197,6 @@ class DeepFillGenerator(paddle.nn.Layer):
                      gated_act=gated_act,
                      **conv_args))
             in_channels = stage2_conv_channels[i]
-        self.stage2_att_encoder = paddle.nn.LayerList()
-        in_channels = stage2_in_channels
-        for i in range(6):
-            self.stage2_att_encoder.append(
-                Conv(in_channels=in_channels,
-                     out_channels=stage2_att_channels[i],
-                     kernel_size=kernel_sizes[i],
-                     stride=strides[i],
-                     padding=(kernel_sizes[i] - 1) // 2,
-                     padding_mode=padding_mode,
-                     norm=norm,
-                     act=act,
-                     gated_act=gated_act,
-                     **conv_args))
-            in_channels = stage2_att_channels[i]
         self.stage2_neck = paddle.nn.LayerList()
         for i in range(4):
             self.stage2_neck.append(
@@ -226,6 +211,20 @@ class DeepFillGenerator(paddle.nn.Layer):
                      act=act,
                      gated_act=gated_act,
                      **conv_args))
+        self.stage2_att_encoder = paddle.nn.LayerList()
+        for i in range(6):
+            self.stage2_att_encoder.append(
+                Conv(in_channels=in_channels,
+                     out_channels=stage2_att_channels[i],
+                     kernel_size=kernel_sizes[i],
+                     stride=strides[i],
+                     padding=(kernel_sizes[i] - 1) // 2,
+                     padding_mode=padding_mode,
+                     norm=norm,
+                     act=act,
+                     gated_act=gated_act,
+                     **conv_args))
+            in_channels = stage2_att_channels[i]
         self.contextual = ContextualAttention()
         in_channels *= 2
         self.stage2_decoder = paddle.nn.LayerList()
