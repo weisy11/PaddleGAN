@@ -226,6 +226,20 @@ class DeepFillGenerator(paddle.nn.Layer):
                      **conv_args))
             in_channels = stage2_att_channels[i]
         self.contextual = ContextualAttention()
+        self.contextual_conv = paddle.nn.LayerList()
+        for i in range(2):
+            self.contextual_conv.append(
+                Conv(in_channels=in_channels,
+                     out_channels=in_channels,
+                     kernel_size=3,
+                     stride=1,
+                     padding=1,
+                     padding_mode=padding_mode,
+                     norm=norm,
+                     act=act,
+                     gated_act=gated_act,
+                     **conv_args)
+            )
         in_channels *= 2
         self.stage2_decoder = paddle.nn.LayerList()
         for i in range(7):
@@ -268,8 +282,9 @@ class DeepFillGenerator(paddle.nn.Layer):
             att_x = layer_i(att_x)
         attention_size = att_x.shape[-2:]
         resized_mask = F.interpolate(mask, size=attention_size)
-        att_x, offset = self.contextual(att_x, resized_mask)
-
+        att_x, offset = self.contextual(att_x, att_x, resized_mask)
+        for layer_i in self.contextual_conv:
+            att_x = layer_i(att_x)
         x = paddle.concat([x, att_x], axis=1)
         for i, layer_i in enumerate(self.stage2_decoder):
             x = layer_i(x)
