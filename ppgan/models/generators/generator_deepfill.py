@@ -260,9 +260,8 @@ class DeepFillGenerator(paddle.nn.Layer):
             x = self.out_act(x)
         x = x * mask + masked_img * (1 - mask)
         x = paddle.concat([x, input_x[:, 3:]], axis=1)
-        conv_x = x
         for layer_i in self.stage2_conv_encoder:
-            conv_x = layer_i(conv_x)
+            x = layer_i(x)
         for layer_i in self.stage2_neck:
             x = layer_i(x)
         att_x = x
