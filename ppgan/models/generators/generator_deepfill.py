@@ -212,6 +212,7 @@ class DeepFillGenerator(paddle.nn.Layer):
                      gated_act=gated_act,
                      **conv_args))
         self.stage2_att_encoder = paddle.nn.LayerList()
+        in_channels = stage2_in_channels
         for i in range(6):
             self.stage2_att_encoder.append(
                 Conv(in_channels=in_channels,
@@ -273,11 +274,11 @@ class DeepFillGenerator(paddle.nn.Layer):
             x = self.out_act(x)
         x = x * mask + masked_img * (1 - mask)
         x = paddle.concat([x, input_x[:, 3:]], axis=1)
+        att_x = x
         for layer_i in self.stage2_conv_encoder:
             x = layer_i(x)
         for layer_i in self.stage2_neck:
             x = layer_i(x)
-        att_x = x
         for layer_i in self.stage2_att_encoder:
             att_x = layer_i(att_x)
         attention_size = att_x.shape[-2:]
