@@ -167,6 +167,10 @@ class DeepFillGenerator(paddle.nn.Layer):
                      **conv_args))
         self.stage1_decoder = paddle.nn.LayerList()
         for i in range(7):
+            if i != 6:
+                decoder_act = act
+            else:
+                decoder_act = None
             self.stage1_decoder.append(
                 Conv(in_channels=in_channels,
                      out_channels=stage1_decoder_channels[i],
@@ -175,7 +179,7 @@ class DeepFillGenerator(paddle.nn.Layer):
                      padding=1,
                      padding_mode=padding_mode,
                      norm=norm,
-                     act=act,
+                     act=decoder_act,
                      gated_act=gated_act,
                      **conv_args)
             )
@@ -244,6 +248,10 @@ class DeepFillGenerator(paddle.nn.Layer):
         in_channels *= 2
         self.stage2_decoder = paddle.nn.LayerList()
         for i in range(7):
+            if i != 6:
+                decoder_act = act
+            else:
+                decoder_act = None
             self.stage2_decoder.append(
                 Conv(in_channels=in_channels,
                      out_channels=stage2_decoder_channels[i],
@@ -252,7 +260,7 @@ class DeepFillGenerator(paddle.nn.Layer):
                      padding=1,
                      padding_mode=padding_mode,
                      norm=norm,
-                     act=act,
+                     act=decoder_act,
                      gated_act=gated_act,
                      **conv_args)
             )
@@ -293,4 +301,5 @@ class DeepFillGenerator(paddle.nn.Layer):
                 x = F.interpolate(x, scale_factor=2)
         if self.out_act is not None:
             x = self.out_act(x)
+        x = x * mask + masked_img * (1. - mask)
         return x
