@@ -302,4 +302,5 @@ class DeepFillGenerator(paddle.nn.Layer):
         if self.out_act is not None:
             x = self.out_act(x)
         x = x * mask + masked_img * (1. - mask)
+        x = paddle.concat([x, mask], axis=1)
         return x
