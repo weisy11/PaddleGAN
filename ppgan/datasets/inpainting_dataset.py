@@ -73,8 +73,8 @@ class MaskGenerator(object):
                     angle = -angle
                 length = np.random.randint(length_range[0], length_range[1])
                 brush_width = np.random.randint(brush_width_range[0], brush_width_range[1])
-                end_x = (start_x + length * np.cos(angle)).astype(np.int)
-                end_y = (start_y + length * np.sin(angle)).astype(np.int)
+                end_x = (start_x + length * np.sin(angle)).astype(np.int)
+                end_y = (start_y + length * np.cos(angle)).astype(np.int)
                 cv2.line(mask, (start_x, start_y), (end_x, end_y), 1, brush_width)
                 start_x, start_y = end_x, end_y
         mask = np.expand_dims(mask, axis=2)
