@@ -37,8 +37,8 @@ class MaskGenerator(object):
 
     def irregular_mask(self, index, img):
         h, w, _ = img.shape
-        mask = np.zeros(h, w)
-        vert_num_range = self.mask_config.get("num_vertexes", (4, 8))
+        mask = np.zeros((h, w))
+        vert_num_range = self.mask_config.get("num_vertexes", (4, 12))
         assert isinstance(vert_num_range, tuple), \
             "The type of vert_num_range should be tuple, but got {}".format(type(vert_num_range))
         vert_num = np.random.randint(vert_num_range[0], vert_num_range[1])
@@ -47,7 +47,7 @@ class MaskGenerator(object):
         assert isinstance(length_range, tuple), \
             "The type of length_range should be tuple, but got {}".format(type(length_range))
 
-        brush_width_range = self.mask_config.get("brush_width_range", (10, 40))
+        brush_width_range = self.mask_config.get("brush_width_range", (12, 40))
         assert isinstance(brush_width_range, tuple), \
             "The type of brush_width_range should be tuple, but got {}".format(type(brush_width_range))
 
@@ -55,16 +55,20 @@ class MaskGenerator(object):
         assert isinstance(direction_num_range, tuple), \
             "The type of direction_num_range should be tuple, but got {}".format(type(direction_num_range))
 
-        max_angle = self.mask_config.get("max_angle", (10, 40))
-        assert isinstance(max_angle, int), \
-            "The type of max_angle should be int, but got {}".format(type(max_angle))
+        angle_mean = self.mask_config.get('angle_mean', np.pi * 2 / 5)
+        assert isinstance(angle_mean, float), \
+            "The type of angle_mean should be float, but got {}".format(type(angle_mean))
+
+        angle_max_bias = self.mask_config.get('angle_max_bias', np.pi * 2 / 15)
+        assert isinstance(angle_mean, float), \
+            "The type of angle_mean should be float, but got {}".format(type(angle_mean))
 
         for vert_i in range(vert_num):
             start_x = np.random.randint(w)
             start_y = np.random.randint(h)
             direction_num = np.random.randint(direction_num_range[0], direction_num_range[1])
             for direct_i in range(direction_num):
-                angle = np.random.randint(max_angle)
+                angle = angle_mean + np.random.rand() * angle_max_bias
                 if not vert_i % 2:
                     angle = -angle
                 length = np.random.randint(length_range[0], length_range[1])
