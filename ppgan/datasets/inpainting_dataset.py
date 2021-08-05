@@ -51,7 +51,7 @@ class MaskGenerator(object):
         assert isinstance(brush_width_range, tuple), \
             "The type of brush_width_range should be tuple, but got {}".format(type(brush_width_range))
 
-        direction_num_range = self.mask_config.get("direction_num_range", (10, 40))
+        direction_num_range = self.mask_config.get("direction_num_range", (1, 6))
         assert isinstance(direction_num_range, tuple), \
             "The type of direction_num_range should be tuple, but got {}".format(type(direction_num_range))
 
@@ -68,7 +68,7 @@ class MaskGenerator(object):
             start_y = np.random.randint(h)
             direction_num = np.random.randint(direction_num_range[0], direction_num_range[1])
             for direct_i in range(direction_num):
-                angle = angle_mean + np.random.rand() * angle_max_bias
+                angle = np.random.uniform(angle_mean - angle_max_bias, angle_mean + angle_max_bias)
                 if not vert_i % 2:
                     angle = -angle
                 length = np.random.randint(length_range[0], length_range[1])
