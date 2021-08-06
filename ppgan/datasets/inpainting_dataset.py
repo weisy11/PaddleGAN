@@ -17,19 +17,27 @@ from paddle.io import Dataset
 import numpy as np
 import cv2
 
+from .preprocess import build_preprocess
+from .builder import DATASETS
 
-class MaskGenerator(object):
-    def __init__(self, mask_mode="irregular_mask", **mask_config):
+
+class MaskSynther(object):
+    def __init__(self, mask_mode="brush_stroke_mask", **mask_config):
         self.mask_mode = mask_mode
         self.mask_config = mask_config
+        if self.mask_mode == "file_mask":
+            file_root = mask_config.get("mask_root", None)
+            assert file_root is not None, "Please set mask_root for file_mode"
+            mask_list_file = mask_config.get("mask_list_file", None)
+            assert mask_list_file is not None, "Please set mask_list_file for file_mode"
+            with open(mask_list_file, "r") as f:
+                label_list = f.read().split("\n")[:-1]
+            self.mask_list = [label.split("\t")[1] for label in label_list]
 
     def __getitem__(self, index, img):
         return getattr(self, self.mask_mode)(index, img)
 
     def file_mask(self, index, img):
-        return
-
-    def list_mask(self, index, img):
         return
 
     def brush_stroke_mask(self, index, img):
@@ -87,10 +95,35 @@ class MaskGenerator(object):
         return mask
 
 
+@DATASETS.register
 class InpaintingDataset(Dataset):
-    def __init__(self, img_root, img_list_path, mask_mode, **mask_config):
+    def __init__(self,
+                 img_root,
+                 img_list_path,
+                 preprocess=None,
+                 mask_mode="brush_stroke_mask",
+                 **mask_config):
         super(InpaintingDataset, self).__init__()
-
+        self.img_root = img_root
+        if preprocess is not None:
+            self.preprocess = build_preprocess(preprocess)
+        else:
+            self.preprocess = None
+        with open(img_list_path, 'r') as f:
+            self.img_list = f.read().split("\n")[:-1]
+            mask_config["mask_list_file"] = img_root
+        if mask_mode is "file_mask":
+            self.img_list = [label.split("\t")[0] for label in self.img_list]
+        self.mask_synther = MaskSynther(mask_mode, **mask_config)
 
     def __getitem__(self, index):
-        return 0
+        img_path = self.img_list[index]
+        img = cv2.imread(img_path)
+        if self.preprocess is not None:
+            img = self.preprocess(img)
+        mask = self.mask_synther[index, img]
+        img = img * (1 - mask)
+        return {"img": img, "mask": mask}
+
+    def __len__(self):
+        return len(self.img_list)
