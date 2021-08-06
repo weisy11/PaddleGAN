@@ -32,10 +32,7 @@ class MaskGenerator(object):
     def list_mask(self, index, img):
         return
 
-    def brush_mask(self, index, img):
-        return
-
-    def brush_mask(self, index, img):
+    def brush_stroke_mask(self, index, img):
         h, w, _ = img.shape
         mask = np.zeros((h, w))
         vert_num_range = self.mask_config.get("num_vertexes", (4, 12))
