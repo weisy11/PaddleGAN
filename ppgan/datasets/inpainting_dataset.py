@@ -27,6 +27,12 @@ class MaskSynther(object):
     def __init__(self, mask_mode="brush_stroke_mask", **mask_config):
         self.mask_mode = mask_mode
         self.mask_config = mask_config
+        preprocess = self.mask_config.get("preprocess", [{
+            "name": "Transforms",
+            "input_keys": ["mask"],
+            "pipeline": {"name": "Transpose"}
+        }])
+        self.preprocess = build_preprocess(preprocess)
         if self.mask_mode == "file_mask":
             file_root = mask_config.get("mask_root", None)
             assert file_root is not None, "Please set mask_root for file_mode"
@@ -36,19 +42,20 @@ class MaskSynther(object):
                 label_list = f.read().split("\n")[:-1]
             self.mask_list = [label.split("\t")[1] for label in label_list]
 
-    def __getitem__(self, index, img):
+    def __getitem__(self, args):
+        index, img = args
         return getattr(self, self.mask_mode)(index, img)
 
     def file_mask(self, index, img):
         mask_file = self.mask_list[index]
         mask = cv2.imread(mask_file, cv2.IMREAD_GRAYSCALE)
-        h, w, c = img.shape
+        c, h, w = img.shape
         mask = cv2.resize(mask, (w, h), cv2.INTER_NEAREST)
         mask = mask / 255
         return mask
 
     def brush_stroke_mask(self, index, img):
-        h, w, _ = img.shape
+        c, h, w = img.shape
         mask = np.zeros((h, w))
         vert_num_range = self.mask_config.get("num_vertexes", (4, 12))
         assert isinstance(vert_num_range, tuple), \
@@ -130,7 +137,7 @@ class InpaintingDataset(Dataset):
         img = cv2.imread(img_path)
         if self.preprocess is not None:
             img = self.preprocess({"img": img})["img"]
-        mask = self.mask_synther[index, img]
+        mask = self.mask_synther[(index, img)]
         img = img * (1 - mask)
         return {"img": img, "mask": mask}
 

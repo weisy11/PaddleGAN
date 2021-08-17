@@ -34,19 +34,25 @@ dataset:
   train:
     name: InpaintingDataset
     img_root: data/places365-standard
-    img_list_path: data/places365-standard/train_shuffled_256.flist
+    img_list_path: data/places365-standard/train_shuffled_large.flist
     num_workers: 4
     batch_size: 2
     mask_mode: brush_stroke_mask
-    mask_config: null
+    mask_config:
+      preprocess:
+        - name: Transforms
+          input_keys: [mask]
+          pipeline:
+            - name: Transpose
     preprocess:
       - name: Transforms
         input_keys: [img]
         pipeline:
           - name: RandomCrop
-            size: [384, 384]
+            size: 384
           - name: Resize
             size: [256, 256]
+          - name: Transpose
           - name: Normalize
             mean: [127.5, 127.5, 127.5]
             std: [127.5, 127.5, 127.5]
@@ -57,15 +63,16 @@ dataset:
     num_workers: 4
     batch_size: 2
     mask_mode: brush_stroke_mask
-    mask_config: null
+    mask_config:
+      preprocess:
+        - name: Transforms
+          input_keys: [ mask ]
+          pipeline:
+            - name: Transpose
     preprocess:
       - name: Transforms
         input_keys: [img]
         pipeline:
-          - name: PairedRandomCrop
-            size: [ 384, 384 ]
-          - name: Resize
-            size: [ 256, 256 ]
           - name: Normalize
             mean: [ 127.5, 127.5, 127.5 ]
             std: [ 127.5, 127.5, 127.5 ]
