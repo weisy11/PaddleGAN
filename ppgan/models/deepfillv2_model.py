@@ -108,8 +108,8 @@ class Deepfillv2Model(BaseModel):
         self.forward_G()
 
     def setup_input(self, input):
-        self.mask = input["mask"]
-        self.gt_img = input["img"]
+        self.mask = input["mask"].astype("float32")
+        self.gt_img = input["img"].astype("float32")
         self.masked_img = self.gt_img * (1. - self.mask)
 
     def forward_G(self):

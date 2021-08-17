@@ -28,7 +28,6 @@ class Fixed(LRScheduler):
         self.base_lr = learning_rate
 
     def get_lr(self):
-        print(self.base_lr)
         return self.base_lr
 
 

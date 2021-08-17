@@ -27,6 +27,7 @@ model:
       name: L1Loss
       masked: False
       loss_weight: 1.0
+  disc_input_with_mask: true
   disc_steps: 1
   max_eval_steps: 50000
 
