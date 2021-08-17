@@ -52,23 +52,23 @@ dataset:
             std: [127.5, 127.5, 127.5]
   test:
     name: InpaintingDataset
-      img_root: data/ffhq/images256x256/
-      img_list_path: tt
-      num_workers: 4
-      batch_size: 2
-      mask_config:
-        mask_mode: brush_stroke_mask
-      preprocess:
-        - name: Transforms
-          input_keys: img
-          pipeline:
-            - name: PairedRandomCrop
-              size: [ 384, 384 ]
-            - name: Resize
-              size: [ 256, 256 ]
-            - name: Normalize
-              mean: [ 127.5, 127.5, 127.5 ]
-              std: [ 127.5, 127.5, 127.5 ]
+    img_root: data/ffhq/images256x256/
+    img_list_path: tt
+    num_workers: 4
+    batch_size: 2
+    mask_config:
+      mask_mode: brush_stroke_mask
+    preprocess:
+      - name: Transforms
+        input_keys: img
+        pipeline:
+          - name: PairedRandomCrop
+            size: [ 384, 384 ]
+          - name: Resize
+            size: [ 256, 256 ]
+          - name: Normalize
+            mean: [ 127.5, 127.5, 127.5 ]
+            std: [ 127.5, 127.5, 127.5 ]
 
 
 lr_scheduler:
