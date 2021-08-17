@@ -13,6 +13,7 @@
 # limitations under the License.
 
 # code was heavily based on https://github.com/open-mmlab/mmediting
+
 from paddle.io import Dataset
 import numpy as np
 import cv2
@@ -38,7 +39,12 @@ class MaskSynther(object):
         return getattr(self, self.mask_mode)(index, img)
 
     def file_mask(self, index, img):
-        return
+        mask_file = self.mask_list[index]
+        mask = cv2.imread(mask_file, cv2.IMREAD_GRAYSCALE)
+        h, w, c = img.shape
+        mask = cv2.resize(mask, (w, h), cv2.INTER_NEAREST)
+        mask = mask / 255
+        return mask
 
     def brush_stroke_mask(self, index, img):
         h, w, _ = img.shape
@@ -102,16 +108,17 @@ class InpaintingDataset(Dataset):
                  img_list_path,
                  preprocess=None,
                  mask_mode="brush_stroke_mask",
-                 **mask_config):
+                 mask_config=None):
         super(InpaintingDataset, self).__init__()
         self.img_root = img_root
         if preprocess is not None:
             self.preprocess = build_preprocess(preprocess)
         else:
             self.preprocess = None
+        if mask_config is None:
+            mask_config = {}
         with open(img_list_path, 'r') as f:
             self.img_list = f.read().split("\n")[:-1]
-            mask_config["mask_list_file"] = img_root
         if mask_mode is "file_mask":
             self.img_list = [label.split("\t")[0] for label in self.img_list]
         self.mask_synther = MaskSynther(mask_mode, **mask_config)
@@ -120,7 +127,7 @@ class InpaintingDataset(Dataset):
         img_path = self.img_list[index]
         img = cv2.imread(img_path)
         if self.preprocess is not None:
-            img = self.preprocess(img)
+            img = self.preprocess({"img": img})["img"]
         mask = self.mask_synther[index, img]
         img = img * (1 - mask)
         return {"img": img, "mask": mask}

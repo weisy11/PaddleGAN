@@ -22,6 +22,16 @@ LRSCHEDULERS.register(MultiStepDecay)
 
 
 @LRSCHEDULERS.register()
+class Fixed(LRScheduler):
+    def __init__(self, learning_rate):
+        super(Fixed, self).__init__(learning_rate)
+        self.learning_rate = learning_rate
+
+    def get_lr(self):
+        return self.learning_rate
+
+
+@LRSCHEDULERS.register()
 class NonLinearDecay(LRScheduler):
     def __init__(self, learning_rate, lr_decay, last_epoch=-1):
         self.lr_decay = lr_decay

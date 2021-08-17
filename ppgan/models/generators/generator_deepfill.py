@@ -110,10 +110,10 @@ class SimpleConv(paddle.nn.Layer):
         return out
 
 
-class DeepFillGenerator(paddle.nn.Layer):
+class DeepFillv2Generator(paddle.nn.Layer):
     def __init__(self,
                  in_channels=5,
-                 conv_type="simple",
+                 conv_type="gated",
                  padding_mode="reflect",
                  norm=None,
                  act="ELU",
@@ -121,7 +121,7 @@ class DeepFillGenerator(paddle.nn.Layer):
                  out_act="tanh",
                  channel_factor=0.75,
                  **conv_args):
-        super(DeepFillGenerator, self).__init__()
+        super(DeepFillv2Generator, self).__init__()
         if conv_type == "simple":
             Conv = SimpleConv
         elif conv_type == "gated":

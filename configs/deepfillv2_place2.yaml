@@ -1,0 +1,97 @@
+total_iters: 800000
+output_dir: output_dir
+
+model:
+  name: Deedfillv2Model
+  generator:
+    name: DeepFillv2Generator
+    conv_type: gated
+    act: ELU
+    channel_factor: 0.75
+
+  discriminator:
+    name: DeepFillv2Discriminator
+    act: LeakyReLU
+    act_attr:
+      negative_slope: 0.2
+    out_act: LeakyReLU
+    out_act_attr:
+      negative_slope: 0.2
+    with_spectral_norm: True
+  loss_args:
+    GAN_loss:
+      name: GANLoss
+      gan_mode: hinge
+      loss_weight: 0.1
+    l1_loss:
+      name: L1Loss
+      masked: False
+      loss_weight: 1.0
+  disc_steps: 1
+  max_eval_steps: 50000
+
+dataset:
+  train:
+    name: InpaintingDataset
+    img_root: data/ffhq/images256x256/
+    img_list_path: tt
+    num_workers: 4
+    batch_size: 2
+    mask_config:
+      mask_mode: brush_stroke_mask
+    preprocess:
+      - name: Transforms
+        input_keys: img
+        pipeline:
+          - name: RandomCrop
+            size: [384, 384]
+          - name: Resize
+            size: [256, 256]
+          - name: Normalize
+            mean: [127.5, 127.5, 127.5]
+            std: [127.5, 127.5, 127.5]
+  test:
+    name: InpaintingDataset
+      img_root: data/ffhq/images256x256/
+      img_list_path: tt
+      num_workers: 4
+      batch_size: 2
+      mask_config:
+        mask_mode: brush_stroke_mask
+      preprocess:
+        - name: Transforms
+          input_keys: img
+          pipeline:
+            - name: PairedRandomCrop
+              size: [ 384, 384 ]
+            - name: Resize
+              size: [ 256, 256 ]
+            - name: Normalize
+              mean: [ 127.5, 127.5, 127.5 ]
+              std: [ 127.5, 127.5, 127.5 ]
+
+
+lr_scheduler:
+  name: Fixed
+  learning_rate: 0.0001
+
+optimizer:
+  optimG:
+    name: Adam
+    net_names:
+      - generator
+  optimD:
+    name: Adam
+    net_names:
+      - discriminator
+
+log_config:
+  interval: 50
+  visiual_interval: 500
+
+snapshot_config:
+  interval: 5000
+
+validate:
+  interval: 5000
+  save_imig: False

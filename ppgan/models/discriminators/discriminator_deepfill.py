@@ -102,7 +102,7 @@ class SNConv(paddle.nn.Layer):
         return out
 
 
-class DeepFillDiscriminator(paddle.nn.Layer):
+class DeepFillv2Discriminator(paddle.nn.Layer):
     def __init__(self,
                  in_channels=4,
                  max_channels=256,
@@ -119,7 +119,7 @@ class DeepFillDiscriminator(paddle.nn.Layer):
                  with_input_norm=True,
                  with_out_conv=False,
                  **conv_args):
-        super(DeepFillDiscriminator, self).__init__()
+        super(DeepFillv2Discriminator, self).__init__()
 
         self.conv_layers = paddle.nn.LayerList()
         if with_out_conv:
