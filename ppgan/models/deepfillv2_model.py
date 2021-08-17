@@ -66,7 +66,8 @@ class MaskedLoss(paddle.nn.Layer):
             return loss
 
 
-class Deedfillv2Model(BaseModel):
+@MODELS.register()
+class Deepfillv2Model(BaseModel):
     def __init__(self,
                  generator,
                  discriminator=None,
@@ -75,7 +76,7 @@ class Deedfillv2Model(BaseModel):
                  gen_input_with_ones=True,
                  disc_input_with_mask=False,
                  max_eval_steps=50000):
-        super(Deedfillv2Model, self).__init__()
+        super(Deepfillv2Model, self).__init__()
         self.nets["generator"] = build_generator(generator)
         if discriminator is not None:
             self.nets["discriminator"] = build_discriminator(discriminator)

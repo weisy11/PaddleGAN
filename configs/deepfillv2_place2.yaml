@@ -2,7 +2,7 @@ total_iters: 800000
 output_dir: output_dir
 
 model:
-  name: Deedfillv2Model
+  name: Deepfillv2Model
   generator:
     name: DeepFillv2Generator
     conv_type: gated
