@@ -17,6 +17,7 @@
 
 import paddle
 
+from .builder import DISCRIMINATORS
 from ...modules.utils import spectral_norm
 
 
@@ -102,6 +103,7 @@ class SNConv(paddle.nn.Layer):
         return out
 
 
+@DISCRIMINATORS.register()
 class DeepFillv2Discriminator(paddle.nn.Layer):
     def __init__(self,
                  in_channels=4,

@@ -19,6 +19,7 @@ import paddle
 import paddle.nn.functional as F
 
 from ppgan.modules.contextual_attentions import ContextualAttention
+from .builder import GENERATORS
 
 
 class GatedConv(paddle.nn.Layer):
@@ -110,6 +111,7 @@ class SimpleConv(paddle.nn.Layer):
         return out
 
 
+@GENERATORS.register()
 class DeepFillv2Generator(paddle.nn.Layer):
     def __init__(self,
                  in_channels=5,

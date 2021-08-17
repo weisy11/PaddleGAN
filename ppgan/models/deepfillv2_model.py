@@ -72,7 +72,7 @@ class Deepfillv2Model(BaseModel):
                  generator,
                  discriminator=None,
                  loss_args=None,
-                 disc_step=1,
+                 disc_steps=1,
                  gen_input_with_ones=True,
                  disc_input_with_mask=False,
                  max_eval_steps=50000):
@@ -82,7 +82,7 @@ class Deepfillv2Model(BaseModel):
             self.nets["discriminator"] = build_discriminator(discriminator)
 
         self.train_step = 0
-        self.disc_step = disc_step
+        self.disc_step = disc_steps
         self.gen_input_with_ones = gen_input_with_ones
         self.disc_input_with_mask = disc_input_with_mask
         if loss_args is None:
