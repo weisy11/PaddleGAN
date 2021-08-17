@@ -33,7 +33,7 @@ model:
 dataset:
   train:
     name: InpaintingDataset
-    img_root: data/ffhq/images256x256/
+    img_root: data/places365-standard
     img_list_path: data/places365-standard/train_shuffled_256.flist
     num_workers: 4
     batch_size: 2
@@ -52,7 +52,7 @@ dataset:
             std: [127.5, 127.5, 127.5]
   test:
     name: InpaintingDataset
-    img_root: data/ffhq/images256x256/
+    img_root: data/places365-standard
     img_list_path: data/places365-standard/validation_static_view.flist
     num_workers: 4
     batch_size: 2
