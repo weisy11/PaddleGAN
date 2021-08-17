@@ -102,6 +102,9 @@ class Deepfillv2Model(BaseModel):
             else:
                 self.l1_loss = build_criterion(l1_loss_config)
 
+    def forward(self):
+        self.forward_G()
+
     def setup_input(self, input):
         self.mask = input["mask"]
         self.gt_img = input["img"]
