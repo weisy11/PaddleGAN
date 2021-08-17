@@ -100,6 +100,8 @@ class Deepfillv2Model(BaseModel):
             if l1_loss_config.get("masked", False):
                 self.l1_loss = MaskedLoss(l1_loss_config)
             else:
+                if "masked" in l1_loss_config:
+                    l1_loss_config.pop("masked")
                 self.l1_loss = build_criterion(l1_loss_config)
 
     def forward(self):
