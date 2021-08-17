@@ -51,7 +51,8 @@ class MaskSynther(object):
         mask = cv2.imread(mask_file, cv2.IMREAD_GRAYSCALE)
         c, h, w = img.shape
         mask = cv2.resize(mask, (w, h), cv2.INTER_NEAREST)
-        mask = mask / 255
+        if self.preprocess is not None:
+            mask = self.preprocess({"mask": mask})["mask"]
         return mask
 
     def brush_stroke_mask(self, index, img):
@@ -105,7 +106,8 @@ class MaskSynther(object):
                 end_y = np.clip((start_y + length * np.cos(angle)).astype(np.int), 0, h)
                 cv2.line(mask, (start_x, start_y), (end_x, end_y), 1, brush_width)
                 start_x, start_y = end_x, end_y
-        mask = np.expand_dims(mask, axis=2)
+        if self.preprocess is not None:
+            mask = self.preprocess({"mask": mask})["mask"]
         return mask
 
 
