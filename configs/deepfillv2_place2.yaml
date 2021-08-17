@@ -34,14 +34,14 @@ dataset:
   train:
     name: InpaintingDataset
     img_root: data/ffhq/images256x256/
-    img_list_path: tt
+    img_list_path: data/places365-standard/train_shuffled_256.flist
     num_workers: 4
     batch_size: 2
-    mask_config:
-      mask_mode: brush_stroke_mask
+    mask_mode: brush_stroke_mask
+    mask_config: null
     preprocess:
       - name: Transforms
-        input_keys: img
+        input_keys: [img]
         pipeline:
           - name: RandomCrop
             size: [384, 384]
@@ -53,14 +53,14 @@ dataset:
   test:
     name: InpaintingDataset
     img_root: data/ffhq/images256x256/
-    img_list_path: tt
+    img_list_path: data/places365-standard/validation_static_view.flist
     num_workers: 4
     batch_size: 2
-    mask_config:
-      mask_mode: brush_stroke_mask
+    mask_mode: brush_stroke_mask
+    mask_config: null
     preprocess:
       - name: Transforms
-        input_keys: img
+        input_keys: [img]
         pipeline:
           - name: PairedRandomCrop
             size: [ 384, 384 ]

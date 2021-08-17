@@ -25,10 +25,11 @@ LRSCHEDULERS.register(MultiStepDecay)
 class Fixed(LRScheduler):
     def __init__(self, learning_rate):
         super(Fixed, self).__init__(learning_rate)
-        self.learning_rate = learning_rate
+        self.base_lr = learning_rate
 
     def get_lr(self):
-        return self.learning_rate
+        print(self.base_lr)
+        return self.base_lr
 
 
 @LRSCHEDULERS.register()

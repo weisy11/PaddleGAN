@@ -17,6 +17,7 @@
 from paddle.io import Dataset
 import numpy as np
 import cv2
+import os
 
 from .preprocess import build_preprocess
 from .builder import DATASETS
@@ -101,7 +102,7 @@ class MaskSynther(object):
         return mask
 
 
-@DATASETS.register
+@DATASETS.register()
 class InpaintingDataset(Dataset):
     def __init__(self,
                  img_root,
@@ -124,7 +125,8 @@ class InpaintingDataset(Dataset):
         self.mask_synther = MaskSynther(mask_mode, **mask_config)
 
     def __getitem__(self, index):
-        img_path = self.img_list[index]
+        img_name = self.img_list[index]
+        img_path = os.path.join(self.img_root, img_name)
         img = cv2.imread(img_path)
         if self.preprocess is not None:
             img = self.preprocess({"img": img})["img"]
