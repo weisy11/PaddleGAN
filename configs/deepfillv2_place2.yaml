@@ -74,7 +74,7 @@ dataset:
       - name: Transforms
         input_keys: [img]
         pipeline:
-          - Transpose
+          - name: Transpose
           - name: Normalize
             mean: [ 127.5, 127.5, 127.5 ]
             std: [ 127.5, 127.5, 127.5 ]
