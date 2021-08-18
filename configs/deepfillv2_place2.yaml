@@ -60,7 +60,7 @@ dataset:
   test:
     name: InpaintingDataset
     img_root: data/places365-standard
-    img_list_path: data/places365-standard/validation_static_view.flist
+    img_list_path: data/places365-standard/val_small.flist
     num_workers: 4
     batch_size: 2
     mask_mode: brush_stroke_mask
@@ -74,6 +74,7 @@ dataset:
       - name: Transforms
         input_keys: [img]
         pipeline:
+          - Transpose
           - name: Normalize
             mean: [ 127.5, 127.5, 127.5 ]
             std: [ 127.5, 127.5, 127.5 ]

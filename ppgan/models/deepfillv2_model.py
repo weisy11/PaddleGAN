@@ -142,16 +142,16 @@ class Deepfillv2Model(BaseModel):
         if self.l1_loss is not None:
             loss_list.append(self.l1_loss(self.stage1_res, self.gt_img))
             loss_list.append(self.l1_loss(self.stage2_res, self.gt_img))
-        return paddle.sum(paddle.to_tensor(loss_list))
+        self.losses["loss_G"] = paddle.sum(paddle.to_tensor(loss_list))
 
     def loss_D(self):
         if self.GAN_loss is not None:
             D_loss_real = self.GAN_loss(self.disc_output_real, True)
             D_loss_fake = self.GAN_loss(self.disc_output_real, False)
             loss = 0.5 * D_loss_real + 0.5 * D_loss_fake
-            return loss
+            self.losses["loss_D"] = loss
         else:
-            return paddle.to_tensor([0])
+            self.losses["loss_D"] = paddle.to_tensor([0])
 
     def train_iter(self, optimizers=None):
         self.forward_G()
@@ -160,15 +160,12 @@ class Deepfillv2Model(BaseModel):
             for param in self.nets["discriminator"].parameters():
                 param.trainable = True
             self.forward_D(is_disc=True)
-            loss = self.loss_D()
-            loss.backward()
+            self.loss_D()
+            self.losses["loss_D"].backward()
 
         self.forward_D(is_disc=False)
-        loss = self.loss_G()
+        self.loss_G()
         for param in self.nets["discriminator"].parameters():
             param.trainable = False
-        loss.backward()
+        self.losses["loss_G"].backward()
         self.train_step += 1
-
-    def test_iter(self, metrics=None):
-        pass
