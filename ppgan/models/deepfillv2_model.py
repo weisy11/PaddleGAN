@@ -138,7 +138,7 @@ class Deepfillv2Model(BaseModel):
     def loss_G(self):
         loss_list = []
         if self.GAN_loss is not None:
-            loss_list.append(self.GAN_loss(self.disc_output_real, True))
+            loss_list.append(self.GAN_loss(self.disc_output_fake, True))
         if self.l1_loss is not None:
             loss_list.append(self.l1_loss(self.stage1_res, self.gt_img))
             loss_list.append(self.l1_loss(self.stage2_res, self.gt_img))
