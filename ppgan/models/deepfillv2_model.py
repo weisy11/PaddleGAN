@@ -135,37 +135,43 @@ class Deepfillv2Model(BaseModel):
         self.disc_output_fake = self.nets["discriminator"](fake_x)
         self.disc_output_real = self.nets["discriminator"](real_x)
 
-    def loss_G(self):
+    def backward_G(self):
         loss_list = []
         if self.GAN_loss is not None:
-            loss_list.append(self.GAN_loss(self.disc_output_fake, True))
+            loss_list.append(self.GAN_loss(self.disc_output_fake, target_is_real=True, is_disc=True, is_updating_D=True))
         if self.l1_loss is not None:
             loss_list.append(self.l1_loss(self.stage1_res, self.gt_img))
             loss_list.append(self.l1_loss(self.stage2_res, self.gt_img))
         self.losses["loss_G"] = paddle.sum(paddle.to_tensor(loss_list))
+        for param in self.nets["discriminator"].parameters():
+            param.trainable = False
+        self.optimizers["generator"].clear_grad()
+        self.losses["loss_G"].backward()
+        self.optimizers["generator"].step()
 
-    def loss_D(self):
+    def backward_D(self):
+        for param in self.nets["discriminator"].parameters():
+            param.trainable = True
         if self.GAN_loss is not None:
-            D_loss_real = self.GAN_loss(self.disc_output_real, True)
-            D_loss_fake = self.GAN_loss(self.disc_output_real, False)
+            D_loss_real = self.GAN_loss(self.disc_output_real, target_is_real=True, is_disc=True, is_updating_D=True)
+            self.optimizers["discriminator"].clear_grad()
+            D_loss_real.backward()
+            D_loss_fake = self.GAN_loss(self.disc_output_fake, target_is_real=False, is_disc=True, is_updating_D=True)
+            D_loss_fake.backward()
             loss = 0.5 * D_loss_real + 0.5 * D_loss_fake
             self.losses["loss_D"] = loss
         else:
             self.losses["loss_D"] = paddle.to_tensor([0])
+            self.optimizers["discriminator"].clear_grad()
+            self.losses["loss_D"].backward()
+        self.optimizers["discriminator"].step()
 
     def train_iter(self, optimizers=None):
         self.forward_G()
-
         if not self.train_step % self.disc_step:
-            for param in self.nets["discriminator"].parameters():
-                param.trainable = True
             self.forward_D(is_disc=True)
-            self.loss_D()
-            self.losses["loss_D"].backward()
+            self.backward_D()
 
         self.forward_D(is_disc=False)
-        self.loss_G()
-        for param in self.nets["discriminator"].parameters():
-            param.trainable = False
-        self.losses["loss_G"].backward()
+        self.backward_G()
         self.train_step += 1

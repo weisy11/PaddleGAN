@@ -282,6 +282,7 @@ class DeepFillv2Generator(paddle.nn.Layer):
                 x = F.interpolate(x, scale_factor=2)
         if self.out_act is not None:
             x = self.out_act(x)
+        stage1_res = x.clone()
         x = x * mask + masked_img * (1 - mask)
         x = paddle.concat([x, input_x[:, 3:]], axis=1)
         att_x = x
@@ -303,5 +304,4 @@ class DeepFillv2Generator(paddle.nn.Layer):
                 x = F.interpolate(x, scale_factor=2)
         if self.out_act is not None:
             x = self.out_act(x)
-        x = x * mask + masked_img * (1. - mask)
-        return x
+        return stage1_res, x
