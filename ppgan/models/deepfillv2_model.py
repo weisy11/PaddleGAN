@@ -141,15 +141,15 @@ class Deepfillv2Model(BaseModel):
         if self.GAN_loss is not None:
             loss_list.append(self.GAN_loss(self.disc_output_fake, target_is_real=True, is_disc=True, is_updating_D=True))
         if isinstance(self.l1_loss, MaskedLoss):
-            loss_list.append(self.l1_loss(self.stage1_res, self.gt_img))
-            loss_list.append(self.l1_loss(self.stage2_res, self.gt_img))
-        elif self.l1_loss is not None:
             valid_mask = (1 - self.mask) * self.valid_weight
             hole_mask = self.mask * self.hole_weight
             loss_list.append(self.l1_loss(self.stage1_res, self.gt_img, mask=valid_mask))
             loss_list.append(self.l1_loss(self.stage2_res, self.gt_img, mask=valid_mask))
             loss_list.append(self.l1_loss(self.stage1_res, self.gt_img, mask=hole_mask))
             loss_list.append(self.l1_loss(self.stage2_res, self.gt_img, mask=hole_mask))
+        elif self.l1_loss is not None:
+            loss_list.append(self.l1_loss(self.stage1_res, self.gt_img))
+            loss_list.append(self.l1_loss(self.stage2_res, self.gt_img))
         self.losses["loss_G"] = paddle.sum(paddle.to_tensor(loss_list))
         for param in self.nets["discriminator"].parameters():
             param.trainable = False
