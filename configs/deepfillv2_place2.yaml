@@ -25,11 +25,11 @@ model:
       loss_weight: 0.1
     l1_loss:
       name: L1Loss
-      masked: False
+      masked: True
       loss_weight: 1.0
   disc_input_with_mask: true
   disc_steps: 1
-  max_eval_steps: 50000
+  max_eval_steps: 100
 
 dataset:
   train:
@@ -49,8 +49,8 @@ dataset:
       - name: Transforms
         input_keys: [img]
         pipeline:
-          - name: RandomCrop
-            size: 384
+#          - name: RandomCrop
+#            size: 384
           - name: Resize
             size: [256, 256]
           - name: Transpose

@@ -139,14 +139,30 @@ class Deepfillv2Model(BaseModel):
     def backward_G(self):
         loss_list = []
         if self.GAN_loss is not None:
-            loss_list.append(self.GAN_loss(self.disc_output_fake, target_is_real=True, is_disc=True, is_updating_D=True))
+            loss_g_fake = self.GAN_loss(self.disc_output_fake, target_is_real=True, is_disc=False, is_updating_D=False)
+            loss_list.append(loss_g_fake)
+            self.losses["loss_g_fake"] = loss_g_fake
+
         if isinstance(self.l1_loss, MaskedLoss):
             valid_mask = (1 - self.mask) * self.valid_weight
             hole_mask = self.mask * self.hole_weight
-            loss_list.append(self.l1_loss(self.stage1_res, self.gt_img, mask=valid_mask))
-            loss_list.append(self.l1_loss(self.stage2_res, self.gt_img, mask=valid_mask))
-            loss_list.append(self.l1_loss(self.stage1_res, self.gt_img, mask=hole_mask))
-            loss_list.append(self.l1_loss(self.stage2_res, self.gt_img, mask=hole_mask))
+
+            s1_valid_l1_loss = self.l1_loss(self.stage1_res, self.gt_img, mask=valid_mask)
+            loss_list.append(s1_valid_l1_loss)
+            self.losses["s1_valid_l1_loss"] = s1_valid_l1_loss
+
+            s2_valid_l1_loss = self.l1_loss(self.stage2_res, self.gt_img, mask=valid_mask)
+            loss_list.append(s2_valid_l1_loss)
+            self.losses["s2_valid_l1_loss"] = s2_valid_l1_loss
+
+            s1_hole_l1_loss = self.l1_loss(self.stage1_res, self.gt_img, mask=hole_mask)
+            loss_list.append(s1_hole_l1_loss)
+            self.losses["s1_hole_l1_loss"] = s1_hole_l1_loss
+
+            s2_hole_l1_loss = self.l1_loss(self.stage2_res, self.gt_img, mask=hole_mask)
+            loss_list.append(s2_hole_l1_loss)
+            self.losses["s2_hole_l1_loss"] = s2_hole_l1_loss
+
         elif self.l1_loss is not None:
             loss_list.append(self.l1_loss(self.stage1_res, self.gt_img))
             loss_list.append(self.l1_loss(self.stage2_res, self.gt_img))
@@ -158,16 +174,16 @@ class Deepfillv2Model(BaseModel):
         self.optimizers["optimG"].step()
 
     def backward_D(self):
+        self.optimizers["optimD"].clear_grad()
         for param in self.nets["discriminator"].parameters():
             param.trainable = True
         if self.GAN_loss is not None:
             D_loss_real = self.GAN_loss(self.disc_output_real, target_is_real=True, is_disc=True, is_updating_D=True)
-            self.optimizers["optimD"].clear_grad()
-            D_loss_real.backward()
             D_loss_fake = self.GAN_loss(self.disc_output_fake, target_is_real=False, is_disc=True, is_updating_D=True)
-            D_loss_fake.backward()
+            loss = D_loss_real + D_loss_fake
+            loss.backward()
             self.optimizers["optimD"].step()
-            loss = 0.5 * D_loss_real + 0.5 * D_loss_fake
+
             self.losses["loss_D"] = loss
         else:
             self.losses["loss_D"] = paddle.to_tensor([0])
