@@ -179,14 +179,16 @@ class Deepfillv2Model(BaseModel):
             param.trainable = True
         if self.GAN_loss is not None:
             D_loss_real = self.GAN_loss(self.disc_output_real, target_is_real=True, is_disc=True, is_updating_D=True)
+
             D_loss_fake = self.GAN_loss(self.disc_output_fake, target_is_real=False, is_disc=True, is_updating_D=True)
+
             loss = D_loss_real + D_loss_fake
             loss.backward()
             self.optimizers["optimD"].step()
 
+            self.losses["D_loss_fake"] = D_loss_fake
+            self.losses["D_loss_real"] = D_loss_real
             self.losses["loss_D"] = loss
-        else:
-            self.losses["loss_D"] = paddle.to_tensor([0])
 
     def train_iter(self, optimizers=None):
         self.forward_G()
