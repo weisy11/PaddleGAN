@@ -97,11 +97,12 @@ class Deepfillv2Model(BaseModel):
 
         if "l1_loss" in self.loss_args:
             l1_loss_config = self.loss_args["l1_loss"]
-            if l1_loss_config.get("masked", False):
+            if l1_loss_config.pop("masked", False):
+                self.hole_weight = l1_loss_config.pop("hole_weight", 1.0)
+                self.valid_weight = l1_loss_config.pop("valid_weight", 1.0)
                 self.l1_loss = MaskedLoss(l1_loss_config)
+
             else:
-                if "masked" in l1_loss_config:
-                    l1_loss_config.pop("masked")
                 self.l1_loss = build_criterion(l1_loss_config)
 
     def forward(self):
@@ -139,32 +140,33 @@ class Deepfillv2Model(BaseModel):
         loss_list = []
         if self.GAN_loss is not None:
             loss_list.append(self.GAN_loss(self.disc_output_fake, target_is_real=True, is_disc=True, is_updating_D=True))
-        if self.l1_loss is not None:
+        if isinstance(self.l1_loss, MaskedLoss):
             loss_list.append(self.l1_loss(self.stage1_res, self.gt_img))
             loss_list.append(self.l1_loss(self.stage2_res, self.gt_img))
+        elif self.l1_loss is not None:
+            loss_list.append(self.l1_loss(self.stage1_res, self.gt_img, mask=self.mask))
+            loss_list.append(self.l1_loss(self.stage2_res, self.gt_img, mask=1-self.mask))
         self.losses["loss_G"] = paddle.sum(paddle.to_tensor(loss_list))
         for param in self.nets["discriminator"].parameters():
             param.trainable = False
-        self.optimizers["generator"].clear_grad()
+        self.optimizers["optimG"].clear_grad()
         self.losses["loss_G"].backward()
-        self.optimizers["generator"].step()
+        self.optimizers["optimG"].step()
 
     def backward_D(self):
         for param in self.nets["discriminator"].parameters():
             param.trainable = True
         if self.GAN_loss is not None:
             D_loss_real = self.GAN_loss(self.disc_output_real, target_is_real=True, is_disc=True, is_updating_D=True)
-            self.optimizers["discriminator"].clear_grad()
+            self.optimizers["optimD"].clear_grad()
             D_loss_real.backward()
             D_loss_fake = self.GAN_loss(self.disc_output_fake, target_is_real=False, is_disc=True, is_updating_D=True)
             D_loss_fake.backward()
+            self.optimizers["optimD"].step()
             loss = 0.5 * D_loss_real + 0.5 * D_loss_fake
             self.losses["loss_D"] = loss
         else:
             self.losses["loss_D"] = paddle.to_tensor([0])
-            self.optimizers["discriminator"].clear_grad()
-            self.losses["loss_D"].backward()
-        self.optimizers["discriminator"].step()
 
     def train_iter(self, optimizers=None):
         self.forward_G()
