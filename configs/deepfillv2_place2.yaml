@@ -99,8 +99,8 @@ log_config:
   visiual_interval: 500
 
 snapshot_config:
-  interval: 5000
+  interval: 50000
 
 validate:
-  interval: 5000
+  interval: 50000
   save_img: False
