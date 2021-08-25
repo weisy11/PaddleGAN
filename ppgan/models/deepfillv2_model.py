@@ -148,25 +148,25 @@ class Deepfillv2Model(BaseModel):
             hole_mask = self.mask * self.hole_weight
 
             s1_valid_l1_loss = self.l1_loss(self.stage1_res, self.gt_img, mask=valid_mask)
-            loss_list.append(s1_valid_l1_loss)
             self.losses["s1_valid_l1_loss"] = s1_valid_l1_loss
 
             s2_valid_l1_loss = self.l1_loss(self.stage2_res, self.gt_img, mask=valid_mask)
-            loss_list.append(s2_valid_l1_loss)
             self.losses["s2_valid_l1_loss"] = s2_valid_l1_loss
 
             s1_hole_l1_loss = self.l1_loss(self.stage1_res, self.gt_img, mask=hole_mask)
-            loss_list.append(s1_hole_l1_loss)
             self.losses["s1_hole_l1_loss"] = s1_hole_l1_loss
 
             s2_hole_l1_loss = self.l1_loss(self.stage2_res, self.gt_img, mask=hole_mask)
-            loss_list.append(s2_hole_l1_loss)
             self.losses["s2_hole_l1_loss"] = s2_hole_l1_loss
 
+            self.losses["loss_G"] = s1_hole_l1_loss + s1_valid_l1_loss + s2_hole_l1_loss + s2_valid_l1_loss
+
         elif self.l1_loss is not None:
-            loss_list.append(self.l1_loss(self.stage1_res, self.gt_img))
-            loss_list.append(self.l1_loss(self.stage2_res, self.gt_img))
-        self.losses["loss_G"] = paddle.sum(paddle.to_tensor(loss_list))
+            s1_l1_loss = self.l1_loss(self.stage1_res, self.gt_img)
+            self.losses["s1_l1_loss"] = s1_l1_loss
+            s2_l1_loss = self.l1_loss(self.stage2_res, self.gt_img)
+            self.losses["s2_l1_loss"] = s2_l1_loss
+            self.losses["loss_G"] = s1_l1_loss + s2_l1_loss
         for param in self.nets["discriminator"].parameters():
             param.trainable = False
         self.optimizers["optimG"].clear_grad()
