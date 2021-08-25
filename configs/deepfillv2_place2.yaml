@@ -103,4 +103,4 @@ snapshot_config:
 
 validate:
   interval: 5000
-  save_imig: False
+  save_img: True
