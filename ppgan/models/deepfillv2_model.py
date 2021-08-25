@@ -137,7 +137,7 @@ class Deepfillv2Model(BaseModel):
         self.disc_output_real = self.nets["discriminator"](real_x)
 
     def backward_G(self):
-        self.losses["loss_G"] = paddle.to_tensor(0)
+        self.losses["loss_G"] = paddle.to_tensor(0.)
 
         if self.GAN_loss is not None:
             loss_g_fake = self.GAN_loss(self.disc_output_fake, target_is_real=True, is_disc=False, is_updating_D=False)
