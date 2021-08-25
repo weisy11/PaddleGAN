@@ -140,7 +140,6 @@ class InpaintingDataset(Dataset):
         if self.preprocess is not None:
             img = self.preprocess({"img": img})["img"]
         mask = self.mask_synther[(index, img)]
-        img = img * (1 - mask)
         return {"img": img, "mask": mask}
 
     def __len__(self):
